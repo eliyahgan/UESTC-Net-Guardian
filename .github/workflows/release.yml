@@ -1,0 +1,76 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements-runtime.txt -r requirements-build.txt
+
+      - name: Run tests
+        shell: pwsh
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m unittest discover -s tests -v
+
+      - name: Build Windows application
+        shell: pwsh
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build_guardian.ps1
+
+      - name: Assemble release package
+        shell: pwsh
+        run: |
+          $packageName = "UESTCNetGuardian-$env:RELEASE_TAG-windows-x64"
+          $staging = Join-Path $env:RUNNER_TEMP $packageName
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+          Copy-Item -Path ".\dist\UESTCNetGuardian\*" -Destination $staging -Recurse -Force
+          Copy-Item -LiteralPath ".\.env.example", ".\README.md", ".\LICENSE", ".\GUARDIAN_DEPLOYMENT.md", ".\THIRD_PARTY_NOTICES.md", ".\SOURCE_REVISION.txt" -Destination $staging -Force
+          $zip = Join-Path $env:GITHUB_WORKSPACE "$packageName.zip"
+          Compress-Archive -LiteralPath $staging -DestinationPath $zip -CompressionLevel Optimal -Force
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sum = Join-Path $env:GITHUB_WORKSPACE "SHA256SUMS.txt"
+          Set-Content -LiteralPath $sum -Value "$hash *$packageName.zip" -Encoding ascii
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $packageName = "UESTCNetGuardian-$env:RELEASE_TAG-windows-x64"
+          $notes = @"
+          首个公开 Windows x64 onedir 版本。
+
+          ## 下载
+
+          - 下载 $packageName.zip 并解压到固定目录。
+          - 同时下载 `SHA256SUMS.txt` 校验文件。
+
+          ## 使用
+
+          复制 `.env.example` 为 `.env`，填写校园网凭据，运行 `UESTCNetGuardian.exe`，再在托盘菜单中启用需要的守护模式。完整说明见压缩包内 README、部署说明和第三方许可证说明。
+
+          该发布包未使用代码签名证书；运行前请核对下载来源和 SHA-256。
+          "@
+          Set-Content -LiteralPath release-notes.md -Value $notes -Encoding utf8
+          gh release create "$env:RELEASE_TAG" "$packageName.zip" "SHA256SUMS.txt" --title "UESTC Net Guardian $env:RELEASE_TAG" --notes-file release-notes.md --latest

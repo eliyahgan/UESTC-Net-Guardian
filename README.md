@@ -121,6 +121,8 @@ dist\UESTCNetGuardian\UESTCNetGuardian.exe
 
 项目使用 PyInstaller `onedir` 模式。分发时必须保留 `UESTCNetGuardian.exe` 旁边的 `_internal` 目录。
 
+维护者发布新版本时，更新版本信息并推送 `v*` 标签；`.github/workflows/release.yml` 会在 GitHub Windows Runner 上自动运行测试、构建 EXE、生成 ZIP 和 SHA-256 校验文件，并创建对应 Release。
+
 ## 配置与数据
 
 | 路径 | 内容 |
