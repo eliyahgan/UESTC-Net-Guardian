@@ -28,42 +28,40 @@
 
 热点守护调用 Windows Runtime 的 `NetworkOperatorTetheringManager`。如果设备或系统策略不支持移动热点，程序会记录错误，但不会影响校园网守护继续工作。
 
-## 快速开始
+## 使用方式
 
-### 使用预编译版本（若 Releases 提供）
+### 方式一：直接下载 Release（推荐）
 
-1. 如果仓库的 Releases 页面已经提供构建产物，下载并解压 `UESTCNetGuardian`。
-2. 将 `.env.example` 复制为 `.env`，与项目或 EXE 发行目录保持可发现的相对位置。
-3. 填写校园网账号：
+下载当前正式版 [UESTCNetGuardian-v1.0.0-windows-x64.zip](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/download/v1.0.0/UESTCNetGuardian-v1.0.0-windows-x64.zip)，或前往[最新 Release 页面](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/latest)选择更新版本，然后解压到任意目录。
+
+压缩包已经包含 `UESTCNetGuardian.exe`、旁边必须保留的 `_internal` 目录、`.env.example`、`README.md` 和 `LICENSE`；不要把 EXE 单独移出压缩包。
+
+1. 在 EXE 所在目录复制 `.env.example` 为 `.env`。
+2. 填写校园网账号：
 
    ```env
    UESTC_USERNAME=你的学号或工号
    UESTC_PASSWORD=你的密码
    ```
 
-4. 如果校方当前门户仍只提供 HTTP，并且你理解同一网络内的明文传输风险，再启用：
+3. 如果校方当前门户仍只提供 HTTP，并且你理解同一网络内的明文传输风险，再启用：
 
    ```env
    UESTC_ALLOW_INSECURE_HTTP=1
    ```
 
-5. 运行 `UESTCNetGuardian.exe`，随后在托盘菜单中按需勾选三个模式。
+4. 运行 `UESTCNetGuardian.exe`，随后在托盘菜单中按需勾选“自动连接校园网”“自动保持热点”和“开机自启动”。
+
+发布包未使用代码签名证书，Windows SmartScreen 可能会显示提示；请先确认下载地址和 Release 校验值，再决定是否运行。
 
 > `.env` 包含明文凭据，已经被 `.gitignore` 排除。不要把它上传到 GitHub、聊天或网盘，也不要把校园网密码复用于其他重要账户。
 
-### 从源码运行
+### 方式二：让 Agent 辅助部署
 
-```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-runtime.txt
-Copy-Item .env.example .env
-.\.venv\Scripts\python.exe guardian_app.py
-```
+把下面这一句话直接发给你信任的 Agent：
 
-只想调试旧的命令行认证客户端时，可以运行：
-
-```powershell
-.\run-autoconnect.cmd --debug
+```text
+请克隆 https://github.com/eliyahgan/UESTC-Net-Guardian，在 Windows PowerShell 中使用 Python 3.13 创建虚拟环境并安装 requirements-runtime.txt 和 requirements-build.txt，执行 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build_guardian.ps1 编译 dist\UESTCNetGuardian\UESTCNetGuardian.exe，再引导我复制 .env.example 为 .env 填写校园网凭据、启动程序并在托盘中启用所需模式；不要读取、输出或提交 .env。
 ```
 
 ## 托盘菜单
