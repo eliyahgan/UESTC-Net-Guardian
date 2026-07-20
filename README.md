@@ -34,7 +34,7 @@
 
 下载当前正式版 [UESTCNetGuardian-v1.0.0-windows-x64.zip](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/download/v1.0.0/UESTCNetGuardian-v1.0.0-windows-x64.zip)，或前往[最新 Release 页面](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/latest)选择更新版本，然后解压到任意目录。
 
-压缩包已经包含 `UESTCNetGuardian.exe`、旁边必须保留的 `_internal` 目录、`.env.example`、`README.md` 和 `LICENSE`；不要把 EXE 单独移出压缩包。
+压缩包已经包含 `UESTCNetGuardian.exe`、旁边必须保留的 `_internal` 目录、`.env.example`、README、部署说明、许可证和第三方依赖说明；不要把 EXE 单独移出压缩包。
 
 建议先把压缩包解压到最终使用的固定目录，再开启“开机自启动”；该选项会记录 EXE 的绝对路径，之后移动整个目录需要重新开启一次。
 
