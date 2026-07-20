@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing tag to publish
+        required: true
+        default: v1.0.0
 
 permissions:
   contents: write
@@ -12,7 +18,7 @@ jobs:
   build-release:
     runs-on: windows-latest
     env:
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
 
     steps:
       - name: Check out source
@@ -26,13 +32,15 @@ jobs:
 
       - name: Install dependencies
         shell: pwsh
-        run: python -m pip install -r requirements-runtime.txt -r requirements-build.txt
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install -r requirements-runtime.txt -r requirements-build.txt
 
       - name: Run tests
         shell: pwsh
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python -m unittest discover -s tests -v
+        run: .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 
       - name: Build Windows application
         shell: pwsh
