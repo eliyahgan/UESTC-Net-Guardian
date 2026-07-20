@@ -36,6 +36,8 @@
 
 压缩包已经包含 `UESTCNetGuardian.exe`、旁边必须保留的 `_internal` 目录、`.env.example`、`README.md` 和 `LICENSE`；不要把 EXE 单独移出压缩包。
 
+建议先把压缩包解压到最终使用的固定目录，再开启“开机自启动”；该选项会记录 EXE 的绝对路径，之后移动整个目录需要重新开启一次。
+
 1. 在 EXE 所在目录复制 `.env.example` 为 `.env`。
 2. 填写校园网账号：
 
