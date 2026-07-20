@@ -29,6 +29,23 @@
 
 Release 使用 PyInstaller 生成。PyInstaller 本体采用 GPL-2.0-or-later，并附带允许分发生成程序的 bootloader exception；详情见 [PyInstaller 许可说明](https://pyinstaller.org/en/stable/license.html)。构建环境还使用 `requirements-build.txt` 中的 PyInstaller 版本及其公开依赖（例如 `pyinstaller-hooks-contrib`、`altgraph`、`pefile` 和 `pywin32-ctypes`），它们的许可仍由各自项目决定。
 
+## 打包的 Python 与基础运行库
+
+当前 Windows 构建还会携带 Python 3.13 运行时及其基础 DLL。它们不属于本项目 MIT 代码，相关上游许可如下（版本以构建环境为准）：
+
+| 组件 | 构建版本 | 许可证 | 上游说明 |
+| --- | ---: | --- | --- |
+| Python | 3.13.9 | PSF-2.0 | [Python License](https://docs.python.org/3/license.html) |
+| OpenSSL | 3.0.18 | Apache-2.0 | [OpenSSL License](https://www.openssl.org/source/license.html) |
+| zlib | 1.3.1 | zlib License | [zlib License](https://zlib.net/zlib_license.html) |
+| SQLite | 3.51.0 | blessing / Public Domain | [SQLite Copyright](https://www.sqlite.org/copyright.html) |
+| libffi | 3.4.4 | MIT | [libffi](https://github.com/libffi/libffi) |
+| Expat | 2.7.3 | MIT | [Expat](https://github.com/libexpat/libexpat) |
+| bzip2 | 1.0.8 | bzip2 License | [bzip2](https://sourceware.org/bzip2/) |
+| xz / liblzma | 5.6.4 | LGPL-2.1-or-later / GPL-2.0-or-later / 0BSD | [XZ Utils](https://tukaani.org/xz/) |
+
+这些组件来自构建环境的公开发行包；重新构建时应以实际 Python/Conda 发行包附带的许可证文本和版本为准。
+
 ## 说明
 
 - 本项目没有把第三方依赖的源码重新发布到仓库中；Release ZIP 只包含运行所需的打包文件和本项目文档。
