@@ -127,7 +127,7 @@ dist\UESTCNetGuardian\UESTCNetGuardian.exe
 | `%LOCALAPPDATA%\UESTCNetGuardian\settings.json` | 两个守护模式的勾选状态 |
 | `%LOCALAPPDATA%\UESTCNetGuardian\UESTCNetGuardian.log` | 脱敏后的轮转日志 |
 
-完整环境变量示例见 [.env.example](.env.example)，本机部署细节见 [GUARDIAN_DEPLOYMENT.md](GUARDIAN_DEPLOYMENT.md)。
+完整环境变量示例见 [.env.example](.env.example)，本机部署细节见 [GUARDIAN_DEPLOYMENT.md](GUARDIAN_DEPLOYMENT.md)，打包依赖及许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 测试
 
@@ -151,4 +151,4 @@ dist\UESTCNetGuardian\UESTCNetGuardian.exe
 
 本项目基于 [MuziIsabel/AutoConnectToInternetUESTC](https://github.com/MuziIsabel/AutoConnectToInternetUESTC) 修改，保留了原始 MIT 许可证及来源记录。现行实现已适配 UESTC Srun 门户，并增加 Windows 托盘、移动热点守护、配置持久化、单实例与安全加固。
 
-项目采用 [MIT License](LICENSE)。来源版本与哈希见 [SOURCE_REVISION.txt](SOURCE_REVISION.txt)。
+项目采用 [MIT License](LICENSE)。来源版本与哈希见 [SOURCE_REVISION.txt](SOURCE_REVISION.txt)，打包依赖及许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
