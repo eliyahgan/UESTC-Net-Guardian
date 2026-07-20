@@ -1,0 +1,11 @@
+Upstream: https://github.com/MuziIsabel/AutoConnectToInternetUESTC
+Branch: main
+Upstream HEAD at retrieval: d2573d6 (2026-05-14)
+Retrieved: 2026-07-13
+Official codeload ZIP SHA-256: FB8A27A24A02D36294B8B85C07F6C87C69DFF2228D1DD6F6C25C9B8419FF0C26
+Original internetconnectuestc.py SHA-256: A888ABF9BF78A9668433FE60EC2DE51D915BEC9D4CFFFE29F626A5A64C202C78
+
+The upstream internetconnectuestc.py is retained for source provenance only.
+The active deployment uses uestc_srun_autoconnect.py because the live UESTC portal
+has migrated from the legacy ePortal endpoint to Srun. Local changes are described
+in LOCAL_DEPLOYMENT.md.

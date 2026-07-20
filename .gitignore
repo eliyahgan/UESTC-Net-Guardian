@@ -1,0 +1,34 @@
+.claude/
+CLAUDE.md
+__pycache__/
+*.py[cod]
+*.log
+*.log.*
+.venv/
+upstream-source.zip
+
+# Local credentials / environment
+.env
+.env.*
+!.env.example
+.guardian-data/
+.menu-test-data/
+
+# Build artifacts
+dist/
+build/
+debugbuild*/
+debugdist*/
+diagnostic-*.json
+*.spec
+!UESTCNetGuardian.spec
+
+# Old Selenium/WebDriver artifacts
+driver/
+edgedriver_win64.zip
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
