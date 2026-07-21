@@ -9,6 +9,7 @@
 ## 功能
 
 - 自动检查 UESTC Srun 在线状态，未认证时自动登录
+- 断线后持续周期复查；临时认证失败会按门户要求等待并继续恢复
 - 使用当前门户的 `/cgi-bin/get_challenge` 与 `/cgi-bin/srun_portal` 协议
 - 自动保持 Windows 移动热点开启
 - 禁用 Windows 的“无客户端自动关闭热点”超时
@@ -32,7 +33,7 @@
 
 ### 方式一：直接下载 Release（推荐）
 
-下载当前正式版 [UESTCNetGuardian-v1.0.0-windows-x64.zip](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/download/v1.0.0/UESTCNetGuardian-v1.0.0-windows-x64.zip)，或前往[最新 Release 页面](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/latest)选择更新版本，然后解压到任意目录。
+下载当前正式版 [UESTCNetGuardian-v1.0.1-windows-x64.zip](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/download/v1.0.1/UESTCNetGuardian-v1.0.1-windows-x64.zip)，或前往[最新 Release 页面](https://github.com/eliyahgan/UESTC-Net-Guardian/releases/latest)选择更新版本，然后解压到任意目录。
 
 压缩包已经包含 `UESTCNetGuardian.exe`、旁边必须保留的 `_internal` 目录、`.env.example`、README、部署说明、许可证和第三方依赖说明；不要把 EXE 单独移出压缩包。
 
@@ -45,6 +46,10 @@
    UESTC_USERNAME=你的学号或工号
    UESTC_PASSWORD=你的密码
    ```
+
+   程序默认使用账号域 `@dx-uestc`，通常无需配置。若 `UESTC_USERNAME` 已经是包含 `@` 的完整用户名，程序不会重复追加账号域；只有校方明确要求其他域时，才设置 `UESTC_ACCOUNT_DOMAIN`。
+
+   运行中修改 `.env` 后，请在托盘菜单点击“立即检查并修复”，让新配置立即生效。
 
 3. 如果校方当前门户仍只提供 HTTP，并且你理解同一网络内的明文传输风险，再启用：
 
@@ -63,7 +68,7 @@
 把下面这一句话直接发给你信任的 Agent：
 
 ```text
-请克隆 https://github.com/eliyahgan/UESTC-Net-Guardian，在 Windows PowerShell 中使用 Python 3.13 创建虚拟环境并安装 requirements-runtime.txt 和 requirements-build.txt，执行 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build_guardian.ps1 编译 dist\UESTCNetGuardian\UESTCNetGuardian.exe，再引导我复制 .env.example 为 .env 填写校园网凭据、启动程序并在托盘中启用所需模式；不要读取、输出或提交 .env。
+请克隆 https://github.com/eliyahgan/UESTC-Net-Guardian，在 Windows PowerShell 中使用 Python 3.13 创建虚拟环境并安装 requirements-runtime.txt 和 requirements-build.txt，执行 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build_guardian.ps1 编译 dist\UESTCNetGuardian\UESTCNetGuardian.exe，再引导我复制 .env.example 为 .env 填写校园网凭据（账号域默认 @dx-uestc，完整用户名不会重复追加）、启动程序并在托盘中启用所需模式；不要读取、输出或提交 .env。
 ```
 
 ## 托盘菜单
@@ -89,7 +94,8 @@
 3. 调用 `/cgi-bin/get_challenge` 获取短时 challenge。
 4. 在本地生成 HMAC-MD5、XEncode 信息和 SHA-1 校验值。
 5. 调用 `/cgi-bin/srun_portal` 登录，并再次复核在线状态。
-6. 密码错误或账号锁定时暂停校园网守护，避免持续重试导致进一步锁定。
+6. 临时断网、门户暂不可用或认证过于频繁时按相应等待时间重试；手动“立即检查”会重置退避并立即唤醒守护。
+7. 明确的账号或密码配置错误会暂停校园网守护，避免持续重试导致账号进一步锁定。
 
 ### 热点守护
 

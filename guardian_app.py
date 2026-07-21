@@ -25,10 +25,15 @@ from guardian_config import (
 )
 from hotspot_guard import HotspotResult, PyWinRTBackend
 from hotspot_worker import HotspotGuardWorker
-from uestc_srun_autoconnect import RedactingFilter, SingleInstance, load_env_file
+from uestc_srun_autoconnect import (
+    RedactingFilter,
+    Settings,
+    SingleInstance,
+    load_env_file,
+)
 
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 MUTEX_NAME = r"Local\UESTCNetGuardian_Tray_V1"
 
 
@@ -70,6 +75,12 @@ def build_guardian_logger(debug: bool = False) -> logging.Logger:
         console.addFilter(redactor)
         logger.addHandler(console)
     return logger
+
+
+def load_campus_settings() -> Settings:
+    """Reload project-local credentials while preserving external overrides."""
+    load_env_file(find_env_path(), refresh=True)
+    return Settings.from_environment()
 
 
 def create_tray_image(level: str = "normal", size: int = 64) -> Image.Image:
@@ -157,7 +168,11 @@ class GuardianTrayApp:
             "starting" if self.settings.hotspot_enabled else "disabled"
         )
 
-        self.campus_guard = CampusGuard(logger, self._on_campus_status)
+        self.campus_guard = CampusGuard(
+            logger,
+            self._on_campus_status,
+            settings_factory=load_campus_settings,
+        )
         self.hotspot_guard = HotspotGuardWorker(
             logger,
             interval=self.settings.hotspot_check_interval,

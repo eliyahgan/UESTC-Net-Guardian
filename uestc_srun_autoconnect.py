@@ -37,10 +37,11 @@ import requests
 from bs4 import BeautifulSoup
 
 
-VERSION = "4.0.0-srun"
+VERSION = "4.0.1-srun"
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR / ".env"
 LOG_PATH = BASE_DIR / "BOCCHI THE ROCK.log"
+_LOADED_ENV_VALUES: dict[str, str] = {}
 
 STANDARD_BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 SRUN_BASE64_ALPHABET = "LVoJPiCN2R8G90yg+hmFHuacZ1OWMnrsSTXkYpUq/3dlbfKwv6xztjI7DeBE45QA"
@@ -50,9 +51,15 @@ class PortalProtocolError(RuntimeError):
     """The portal returned an invalid or unsafe response."""
 
 
-def load_env_file(path: Path = ENV_PATH) -> None:
+def load_env_file(path: Path = ENV_PATH, *, refresh: bool = False) -> None:
     if not path.exists():
+        if refresh:
+            for key, previous_value in tuple(_LOADED_ENV_VALUES.items()):
+                if os.environ.get(key) == previous_value:
+                    os.environ.pop(key, None)
+                _LOADED_ENV_VALUES.pop(key, None)
         return
+    values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -60,8 +67,23 @@ def load_env_file(path: Path = ENV_PATH) -> None:
         key, value = line.split("=", 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
+        if key:
+            values[key] = value
+
+    if refresh:
+        for key, previous_value in tuple(_LOADED_ENV_VALUES.items()):
+            if key not in values:
+                if os.environ.get(key) == previous_value:
+                    os.environ.pop(key, None)
+                _LOADED_ENV_VALUES.pop(key, None)
+
+    for key, value in values.items():
+        if key not in os.environ:
             os.environ[key] = value
+            _LOADED_ENV_VALUES[key] = value
+        elif refresh and os.environ.get(key) == _LOADED_ENV_VALUES.get(key):
+            os.environ[key] = value
+            _LOADED_ENV_VALUES[key] = value
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -92,6 +114,23 @@ class Settings:
     http_probe_url: str
     http_probe_expected: str
     ac_id_override: str
+    account_domain: str = "@dx-uestc"
+
+    @property
+    def portal_username(self) -> str:
+        """Return the exact username expected by the current Srun portal.
+
+        UESTC's web UI appends an account domain for the selected login mode.
+        Keep explicitly qualified usernames unchanged so carrier accounts such
+        as ``user@dx`` continue to work.
+        """
+        username = self.username.strip()
+        domain = self.account_domain.strip()
+        if not username or "@" in username or not domain:
+            return username
+        if not domain.startswith("@"):
+            domain = "@" + domain
+        return username + domain
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -123,6 +162,10 @@ class Settings:
                 "Microsoft Connect Test",
             ),
             ac_id_override=os.getenv("UESTC_AC_ID", "").strip(),
+            account_domain=os.getenv(
+                "UESTC_ACCOUNT_DOMAIN",
+                "@dx-uestc",
+            ).strip(),
         )
 
 
@@ -140,7 +183,14 @@ class RedactingFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         message = record.getMessage()
-        for secret in self.secrets:
+        dynamic_secrets = (
+            os.getenv("UESTC_USERNAME", ""),
+            os.getenv("UESTC_PHONE", ""),
+            os.getenv("UESTC_PASSWORD", ""),
+        )
+        for secret in self.secrets + dynamic_secrets:
+            if not secret:
+                continue
             message = message.replace(secret, "***")
         message = self.FIELD_PATTERN.sub(r"\1***", message)
         record.msg = message
@@ -154,7 +204,9 @@ def build_logger(settings: Settings) -> logging.Logger:
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
-    redactor = RedactingFilter((settings.username, settings.password))
+    redactor = RedactingFilter(
+        (settings.username, settings.portal_username, settings.password)
+    )
     formatter = logging.Formatter(
         "%(asctime)s %(name)s:%(levelname)s:%(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -544,7 +596,7 @@ class SrunClient:
     def get_challenge(self) -> tuple[str, str]:
         payload = self._request_json(
             "/cgi-bin/get_challenge",
-            {"username": self.settings.username, "ip": ""},
+            {"username": self.settings.portal_username, "ip": ""},
         )
         if str(payload.get("error", "")).lower() not in {"", "ok"}:
             raise PortalProtocolError("Srun challenge request was rejected")
@@ -558,22 +610,33 @@ class SrunClient:
             raise PortalProtocolError("Srun returned an invalid client IP") from exc
         return token, client_ip
 
-    @staticmethod
-    def _response_message(payload: dict[str, Any]) -> str:
+    def _response_message(self, payload: dict[str, Any]) -> str:
         values = [
             payload.get("error_msg"),
             payload.get("suc_msg"),
             payload.get("error"),
+            payload.get("res"),
             payload.get("ecode"),
         ]
-        return " | ".join(str(value) for value in values if value not in (None, ""))[:300]
+        message = " | ".join(
+            str(value) for value in values if value not in (None, "")
+        )
+        for secret in (
+            self.settings.portal_username,
+            self.settings.username,
+            self.settings.password,
+        ):
+            if secret:
+                message = message.replace(secret, "***")
+        return message[:300]
 
     def authenticate(self) -> AuthResult:
         # Re-discover AC ID after network changes; the current campus segment may differ.
         self.context = self.discover_portal()
         token, client_ip = self.get_challenge()
+        portal_username = self.settings.portal_username
         hmd5, info, checksum = build_srun_material(
-            self.settings.username,
+            portal_username,
             self.settings.password,
             client_ip,
             self.context.ac_id,
@@ -581,7 +644,7 @@ class SrunClient:
         )
         params = {
             "action": "login",
-            "username": self.settings.username,
+            "username": portal_username,
             "password": "{MD5}" + hmd5,
             "os": "Windows NT",
             "name": "Windows",
@@ -613,26 +676,39 @@ class SrunClient:
                     return AuthResult(True, message)
             return AuthResult(False, "门户返回成功，但在线状态复核失败", retry_after=15)
 
-        if error_msg == "ip_already_online_error" or error == "ip_already_online_error":
+        combined = " ".join(
+            (ecode.lower(), error, result, error_msg, message.lower())
+        )
+
+        if (
+            "e2620" in combined
+            or error_msg == "ip_already_online_error"
+            or error == "ip_already_online_error"
+            or result == "ip_already_online_error"
+        ):
             if self.query_online_state() is True:
                 return AuthResult(True, "IP 已在线")
             return AuthResult(False, message, retry_after=15)
 
+        # The portal uses these codes for temporary throttling/lockout.  They
+        # must not permanently halt the guardian: retry only after the exact
+        # cooling-off period advertised by UESTC.
+        if "e2532" in combined:
+            return AuthResult(False, message, retry_after=10)
+        if "e2533" in combined:
+            return AuthResult(False, message, retry_after=300)
+
         fatal_markers = (
             "e2531",
-            "password",
+            "e2553",
+            "e2806",
             "密码错误",
             "用户名或密码",
             "账号或密码",
             "account_locked",
         )
-        combined = " ".join((ecode.lower(), error, error_msg, message.lower()))
         if any(marker in combined for marker in fatal_markers):
             return AuthResult(False, message, fatal=True)
-        if "e2533" in combined:
-            return AuthResult(False, message, fatal=True, retry_after=300)
-        if "e2532" in combined:
-            return AuthResult(False, message, retry_after=10)
         return AuthResult(False, message)
 
     def run(self) -> int:
@@ -669,10 +745,14 @@ class SrunClient:
 
                 failures += 1
                 exponent = min(failures - 1, 8)
-                delay = min(
-                    max(result.retry_after, self.settings.wait_time * (2 ** exponent)),
-                    self.settings.max_retry_wait,
-                )
+                if result.retry_after > 0:
+                    delay = result.retry_after
+                else:
+                    delay = min(
+                        self.settings.wait_time * (2 ** exponent),
+                        self.settings.max_retry_wait,
+                        60,
+                    )
                 self.logger.error(
                     "[周期#%s] 自动认证失败: %s；%ss 后重试",
                     cycle,
@@ -689,6 +769,7 @@ class SrunClient:
                 delay = min(
                     self.settings.wait_time * (2 ** exponent),
                     self.settings.max_retry_wait,
+                    60,
                 )
                 self.logger.error(
                     "[周期#%s] 未处理异常已隔离: %s；%ss 后重试",

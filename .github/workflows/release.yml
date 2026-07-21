@@ -9,7 +9,7 @@ on:
       release_tag:
         description: Existing tag to publish
         required: true
-        default: v1.0.0
+        default: v1.0.1
 
 permissions:
   contents: write
@@ -67,7 +67,7 @@ jobs:
         run: |
           $packageName = "UESTCNetGuardian-$env:RELEASE_TAG-windows-x64"
           $notes = @"
-          首个公开 Windows x64 onedir 版本。
+          Windows x64 onedir 断线恢复补丁版本。
 
           ## 下载
 
@@ -76,7 +76,7 @@ jobs:
 
           ## 使用
 
-          复制 `.env.example` 为 `.env`，填写校园网凭据，运行 `UESTCNetGuardian.exe`，再在托盘菜单中启用需要的守护模式。完整说明见压缩包内 README、部署说明和第三方许可证说明。
+          复制 `.env.example` 为 `.env`，填写校园网凭据；账号域默认使用 `@dx-uestc`，已有完整用户名不会重复追加。运行 `UESTCNetGuardian.exe`，再在托盘菜单中启用需要的守护模式。完整说明见压缩包内 README、部署说明和第三方许可证说明。
 
           该发布包未使用代码签名证书；运行前请核对下载来源和 SHA-256。
           "@
